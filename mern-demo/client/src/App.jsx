@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// Đường dẫn API Backend trên GitHub Codespaces
-const API_URL = 'https://fluffy-fishstick-pjr994pv4g96h7pwv-5000.app.github.dev/api/students';
+const API_URL = 'http://localhost:5000/api/students';
 
 function App() {
   const [students, setStudents] = useState([]);
@@ -11,14 +10,16 @@ function App() {
     email: ''
   });
 
-  // Lấy danh sách sinh viên từ Backend API
+  const [editingId, setEditingId] = useState(null);
+
+  // Lấy danh sách sinh viên
   const fetchStudents = async () => {
     try {
       const response = await fetch(API_URL);
       const data = await response.json();
       setStudents(data);
     } catch (error) {
-      console.error('Lỗi khi tải dữ liệu sinh viên:', error);
+      console.error('Lỗi khi tải dữ liệu:', error);
     }
   };
 
@@ -26,7 +27,7 @@ function App() {
     fetchStudents();
   }, []);
 
-  // Cập nhật State khi nhập Form
+  // Xử lý nhập form
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -34,34 +35,98 @@ function App() {
     });
   };
 
-  // Thêm sinh viên mới
+  // Thêm hoặc cập nhật sinh viên
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+      let response;
+
+      if (editingId) {
+        // Cập nhật sinh viên
+        response = await fetch(`${API_URL}/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+      } else {
+        // Thêm sinh viên
+        response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+      }
+
+      if (response.ok) {
+        setFormData({
+          studentId: '',
+          name: '',
+          email: ''
+        });
+
+        setEditingId(null);
+        fetchStudents();
+      } else {
+        console.error('Lỗi response:', response.status);
+      }
+    } catch (error) {
+      console.error('Lỗi:', error);
+    }
+  };
+
+  // Chọn sinh viên để sửa
+  const handleEdit = (student) => {
+    setEditingId(student._id);
+
+    setFormData({
+      studentId: student.studentId,
+      name: student.name,
+      email: student.email
+    });
+  };
+
+  // Xóa sinh viên
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE'
       });
 
       if (response.ok) {
-        setFormData({ studentId: '', name: '', email: '' });
         fetchStudents();
       } else {
-        console.error('Lỗi response khi thêm sinh viên:', response.status);
+        console.error('Lỗi khi xóa:', response.status);
       }
     } catch (error) {
-      console.error('Lỗi khi thêm sinh viên:', error);
+      console.error('Lỗi:', error);
     }
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif', padding: '0 20px' }}>
+    <div
+      style={{
+        maxWidth: '700px',
+        margin: '40px auto',
+        fontFamily: 'sans-serif',
+        padding: '0 20px'
+      }}
+    >
       <h2>Quản Lý Sinh Viên</h2>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          marginBottom: '30px'
+        }}
+      >
         <input
           type="text"
           name="studentId"
@@ -70,6 +135,7 @@ function App() {
           onChange={handleChange}
           required
         />
+
         <input
           type="text"
           name="name"
@@ -78,6 +144,7 @@ function App() {
           onChange={handleChange}
           required
         />
+
         <input
           type="email"
           name="email"
@@ -86,16 +153,65 @@ function App() {
           onChange={handleChange}
           required
         />
-        <button type="submit" style={{ padding: '10px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
-          Thêm Sinh Viên
+
+        <button
+          type="submit"
+          style={{
+            padding: '10px',
+            backgroundColor: '#007bff',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          {editingId ? 'Cập Nhật Sinh Viên' : 'Thêm Sinh Viên'}
         </button>
+
+        {editingId && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setFormData({
+                studentId: '',
+                name: '',
+                email: ''
+              });
+            }}
+          >
+            Hủy sửa
+          </button>
+        )}
       </form>
 
       <h3>Danh Sách Sinh Viên</h3>
+
       <ul>
         {students.map((sv) => (
-          <li key={sv._id} style={{ marginBottom: '8px' }}>
-            <strong>{sv.studentId}</strong> - {sv.name} ({sv.email})
+          <li
+            key={sv._id}
+            style={{
+              marginBottom: '15px'
+            }}
+          >
+            <strong>{sv.studentId}</strong> - {sv.name}
+            <br />
+            ({sv.email})
+
+            <br />
+
+            <button
+              onClick={() => handleEdit(sv)}
+              style={{ marginRight: '10px' }}
+            >
+              Sửa
+            </button>
+
+            <button
+              onClick={() => handleDelete(sv._id)}
+            >
+              Xóa
+            </button>
           </li>
         ))}
       </ul>
