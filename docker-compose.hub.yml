@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  backend:
+    image: minhhquangg/mern-backend:1.0
+    container_name: mern-backend-hub
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./mern-demo/.env
+
+  frontend:
+    image: minhhquangg/mern-frontend:2.0
+    container_name: mern-frontend-hub
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend

@@ -116,7 +116,7 @@ function App() {
         padding: '0 20px'
       }}
     >
-      <h2>Quản Lý Sinh Viên</h2>
+      <h2>Quản lý Sinh viên - Version 2.0</h2>
 
       <form
         onSubmit={handleSubmit}
